@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #08080f;
+  --surface: #11111c;
+  --card: #17172a;
+  --border: #252540;
+  --accent: #7c6fcd;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg);
+  color: #eeeeff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* VexFlow SVG overrides for dark-friendly rendering */
+.vf-stavenote path,
+.vf-staveline path,
+.vf-stave path {
+  fill: #1a1a2e;
+  stroke: #1a1a2e;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Sheet music container white bg for readability */
+.sheet-music-wrap svg text { font-family: 'Arial', sans-serif; }
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent-light to-emerald-400 bg-clip-text text-transparent;
+  }
+}
