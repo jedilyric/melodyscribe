@@ -1,14 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Lazy client creation — prevents build-time errors when env vars are absent
-export function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
-}
-
-// Server-side client bypassing RLS — only use in API routes
+// Server-side client with service role key — only use in API routes
 export function getServerSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

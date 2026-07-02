@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/auth';
+import { useApiFetch } from '@/hooks/useApiFetch';
 import { useRouter } from 'next/navigation';
 import {
   Usb, Play, Pause, Square, SkipBack, Trash2, RotateCcw,
@@ -24,7 +25,8 @@ interface ActiveNote { midiNote: number; startTime: number }
 const DOWNLOAD_KEYS = ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
 
 export default function KeyboardPage() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
+  const apiFetch = useApiFetch();
   const router = useRouter();
 
   // Settings
@@ -283,7 +285,7 @@ export default function KeyboardPage() {
     const body = { name, type: 'keyboard', key, tempo, time_signature: timeSig, measures, lyrics: '' };
     const url = savedId ? `/api/songs/${savedId}` : '/api/songs';
     const method = savedId ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await apiFetch(url, { method, body: JSON.stringify(body) });
     const data = await res.json();
     if (data.song?.id) setSavedId(data.song.id);
   }
@@ -320,7 +322,7 @@ export default function KeyboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {measures.length > 0 && session && (
+          {measures.length > 0 && user && (
             <button
               onClick={() => setShowSave(true)}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
@@ -508,7 +510,7 @@ export default function KeyboardPage() {
         </div>
       )}
 
-      {!session && measures.length > 0 && (
+      {!user && measures.length > 0 && (
         <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-400 text-center">
           <button onClick={() => router.push('/login')} className="underline underline-offset-2 hover:text-amber-300">Sign in</button> to save your recording to your library.
         </div>

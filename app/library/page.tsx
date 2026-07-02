@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/auth';
+import { useApiFetch } from '@/hooks/useApiFetch';
 import { useRouter } from 'next/navigation';
 import {
   Music, Upload, Download, Trash2, Pencil, Check, X,
@@ -170,34 +171,35 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
 }
 
 export default function LibraryPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const apiFetch = useApiFetch();
   const router = useRouter();
   const [keyboardSongs, setKeyboardSongs] = useState<Song[]>([]);
   const [uploadSongs, setUploadSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'unauthenticated') { router.push('/login'); return; }
-    if (status !== 'authenticated') return;
+    if (authLoading) return;
+    if (!user) { router.push('/login'); return; }
 
     Promise.all([
-      fetch('/api/songs?type=keyboard').then(r => r.json()),
-      fetch('/api/songs?type=upload').then(r => r.json()),
+      apiFetch('/api/songs?type=keyboard').then(r => r.json()),
+      apiFetch('/api/songs?type=upload').then(r => r.json()),
     ]).then(([kbd, up]) => {
       setKeyboardSongs(kbd.songs ?? []);
       setUploadSongs(up.songs ?? []);
       setLoading(false);
     });
-  }, [status, router]);
+  }, [user, authLoading, router]);
 
   async function handleDelete(id: string) {
-    await fetch(`/api/songs/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/songs/${id}`, { method: 'DELETE' });
     setKeyboardSongs(p => p.filter(s => s.id !== id));
     setUploadSongs(p => p.filter(s => s.id !== id));
   }
 
   async function handleRename(id: string, name: string) {
-    await fetch(`/api/songs/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    await apiFetch(`/api/songs/${id}`, { method: 'PUT', body: JSON.stringify({ name }) });
     const update = (songs: Song[]) => songs.map(s => s.id === id ? { ...s, name } : s);
     setKeyboardSongs(update);
     setUploadSongs(update);

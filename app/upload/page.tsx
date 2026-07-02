@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/context/auth';
+import { useApiFetch } from '@/hooks/useApiFetch';
 import { useRouter } from 'next/navigation';
 import {
   Upload, FileMusic, Play, Pause, Square, Loader2,
@@ -90,7 +91,8 @@ async function analyzePitch(audioBuffer: AudioBuffer, tempo: number, timeSig: st
 }
 
 export default function UploadPage() {
-  const { data: session } = useSession();
+  const { user } = useAuth();
+  const apiFetch = useApiFetch();
   const router = useRouter();
 
   const [key, setKey] = useState('C');
@@ -181,7 +183,7 @@ export default function UploadPage() {
     const body = { name, type: 'upload', key, tempo, time_signature: timeSig, measures, lyrics };
     const url = savedId ? `/api/songs/${savedId}` : '/api/songs';
     const method = savedId ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await apiFetch(url, { method, body: JSON.stringify(body) });
     const data = await res.json();
     if (data.song?.id) setSavedId(data.song.id);
   }
@@ -208,7 +210,7 @@ export default function UploadPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {measures.length > 0 && session && (
+          {measures.length > 0 && user && (
             <button onClick={() => setShowSave(true)}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
               <Save size={14} />
@@ -360,7 +362,7 @@ export default function UploadPage() {
         </>
       )}
 
-      {!session && measures.length > 0 && (
+      {!user && measures.length > 0 && (
         <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-400 text-center">
           <button onClick={() => router.push('/login')} className="underline underline-offset-2 hover:text-amber-300">Sign in</button> to save this transcription to your library.
         </div>
