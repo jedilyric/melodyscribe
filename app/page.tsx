@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { Music, Upload, Library, Zap, FileMusic, Mic2, Download } from 'lucide-react';
+import { Music, Upload, Library, Zap, FileMusic, Mic2, Download, HardDrive } from 'lucide-react';
 
 const FEATURES = [
   { icon: Mic2, text: 'Real-time MIDI transcription via USB' },
   { icon: FileMusic, text: 'Audio file → sheet music (MP3/MP4/WAV)' },
   { icon: Download, text: 'PDF export in any key' },
-  { icon: Library, text: 'Personal library with Google sign-in' },
+  { icon: HardDrive, text: 'Library saved locally — no account needed' },
 ];
 
 export default function HomePage() {
@@ -68,7 +68,7 @@ export default function HomePage() {
             Connect a MIDI keyboard via USB. Choose your key, tempo, and time signature. Play — and watch your music appear note-by-note on treble and bass clef staves.
           </p>
           <ul className="mt-4 space-y-1.5 text-xs text-text-secondary">
-            {['Real-time note detection', 'Measure-by-measure recording', 'Playback with count-in', 'Edit or delete any measure'].map(f => (
+            {['Real-time note detection', 'Measure-by-measure recording', 'Playback with count-in', 'Edit, re-record, or delete measures'].map(f => (
               <li key={f} className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-light flex-shrink-0" />
                 {f}
@@ -86,7 +86,7 @@ export default function HomePage() {
             Drop in an MP3, MP4, or WAV file. MelodyScribe analyzes the pitch, transcribes the melody, and creates a complete score — with lyrics if present.
           </p>
           <ul className="mt-4 space-y-1.5 text-xs text-text-secondary">
-            {['Drag & drop or browse', 'Pitch detection & transcription', 'Lyric annotation support', 'PDF download in any key'].map(f => (
+            {['Drag & drop or browse', 'Pitch detection & transcription', 'Add lyrics manually', 'PDF download in any key'].map(f => (
               <li key={f} className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                 {f}

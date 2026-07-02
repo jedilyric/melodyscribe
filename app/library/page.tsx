@@ -1,17 +1,16 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useAuth } from '@/context/auth';
-import { useApiFetch } from '@/hooks/useApiFetch';
 import { useRouter } from 'next/navigation';
 import {
   Music, Upload, Download, Trash2, Pencil, Check, X,
-  ChevronDown, Library, Loader2, Calendar, Clock, Key,
+  ChevronDown, Library, Calendar, Clock, Key,
 } from 'lucide-react';
 import SheetMusic, { SheetMusicHandle } from '@/components/SheetMusic';
-import { Song, Measure } from '@/types';
+import { Song } from '@/types';
 import { transposeMeasures } from '@/lib/noteUtils';
 import { generatePDF } from '@/lib/pdfGenerator';
+import { getSongs, deleteSong, renameSong } from '@/lib/storage';
 
 const DOWNLOAD_KEYS = ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
 
@@ -26,38 +25,29 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
   const [editName, setEditName] = useState(song.name);
   const [showPreview, setShowPreview] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const sheetRef = useRef<SheetMusicHandle>(null);
+  const isKeyboard = song.type === 'keyboard';
 
-  async function saveRename() {
-    if (editName.trim() && editName !== song.name) {
-      await onRename(song.id!, editName.trim());
-    }
+  function saveRename() {
+    if (editName.trim() && editName !== song.name) onRename(song.id!, editName.trim());
     setEditing(false);
-  }
-
-  async function handleDelete() {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
-    setDeleting(true);
-    await onDelete(song.id!);
   }
 
   async function downloadPdf(targetKey: string) {
     setShowDownloadMenu(false);
+    // Ensure the hidden SheetMusic has rendered
+    await new Promise(r => setTimeout(r, 100));
     const svgEl = sheetRef.current?.getSvgElement();
     if (!svgEl) return;
     const transposed = targetKey !== song.key ? transposeMeasures(song.measures, song.key, targetKey) : song.measures;
     await generatePDF({ title: song.name, key: song.key, targetKey, tempo: song.tempo, timeSignature: song.time_signature, measures: transposed, lyrics: song.lyrics, svgElement: svgEl });
   }
 
-  const isKeyboard = song.type === 'keyboard';
-  const accentColor = isKeyboard ? 'accent' : 'emerald';
-
   return (
     <div className={`rounded-2xl border ${confirmDelete ? 'border-rose-500/50' : 'border-border'} bg-card overflow-hidden transition-all`}>
-      {/* Card header */}
-      <div className="flex items-start justify-between gap-3 p-4 pb-3">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 p-4 pb-3">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${isKeyboard ? 'bg-accent/20' : 'bg-emerald-500/20'}`}>
             {isKeyboard ? <Music size={14} className="text-accent-light" /> : <Upload size={14} className="text-emerald-400" />}
@@ -86,9 +76,7 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
           <div className="relative">
             <button onClick={() => setShowDownloadMenu(!showDownloadMenu)}
               className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:border-accent/50 transition-colors">
-              <Download size={12} />
-              PDF
-              <ChevronDown size={10} />
+              <Download size={12} />PDF<ChevronDown size={10} />
             </button>
             {showDownloadMenu && (
               <div className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-border bg-surface shadow-xl py-1.5 z-50">
@@ -102,18 +90,15 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
               </div>
             )}
           </div>
-
           <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${confirmDelete ? 'border-rose-500/50 bg-rose-500/15 text-rose-400 hover:bg-rose-500/25' : 'border-border text-muted hover:text-rose-400 hover:border-rose-500/30'}`}
-          >
-            {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            onClick={() => confirmDelete ? onDelete(song.id!) : setConfirmDelete(true)}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition-colors ${confirmDelete ? 'border-rose-500/50 bg-rose-500/15 text-rose-400' : 'border-border text-muted hover:text-rose-400 hover:border-rose-500/30'}`}>
+            <Trash2 size={12} />
           </button>
         </div>
       </div>
 
-      {/* Metadata */}
+      {/* Meta */}
       <div className="flex flex-wrap gap-3 px-4 pb-3">
         <span className="flex items-center gap-1 text-xs text-muted"><Key size={10} />{song.key}</span>
         <span className="flex items-center gap-1 text-xs text-muted"><Clock size={10} />{song.tempo} BPM · {song.time_signature}</span>
@@ -122,48 +107,31 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
       </div>
 
       {/* Preview toggle */}
-      <button
-        onClick={() => setShowPreview(!showPreview)}
-        className="w-full px-4 py-2 text-xs text-muted hover:text-text-secondary border-t border-border/50 hover:bg-surface/50 transition-colors text-left flex items-center justify-between"
-      >
-        {showPreview ? 'Hide preview' : 'Show sheet music preview'}
+      <button onClick={() => setShowPreview(!showPreview)}
+        className="w-full px-4 py-2 text-xs text-muted hover:text-text-secondary border-t border-border/50 hover:bg-surface/50 transition-colors text-left flex items-center justify-between">
+        {showPreview ? 'Hide preview' : 'Show sheet music'}
         <ChevronDown size={12} className={`transition-transform ${showPreview ? 'rotate-180' : ''}`} />
       </button>
 
       {showPreview && song.measures.length > 0 && (
         <div className="px-3 pb-3">
-          <SheetMusic
-            ref={sheetRef}
-            measures={song.measures}
-            timeSignature={song.time_signature}
-            keySignature={song.key}
-            selectedMeasure={null}
-            onSelectMeasure={() => {}}
-          />
+          <SheetMusic ref={sheetRef} measures={song.measures} timeSignature={song.time_signature}
+            keySignature={song.key} selectedMeasure={null} onSelectMeasure={() => {}} />
         </div>
       )}
 
-      {/* Invisible SheetMusic for PDF export when preview is hidden */}
-      {!showPreview && (
-        <div className="sr-only pointer-events-none absolute">
-          <SheetMusic
-            ref={sheetRef}
-            measures={song.measures}
-            timeSignature={song.time_signature}
-            keySignature={song.key}
-            selectedMeasure={null}
-            onSelectMeasure={() => {}}
-          />
+      {/* Hidden renderer for PDF export when preview is closed */}
+      {!showPreview && song.measures.length > 0 && (
+        <div className="sr-only" aria-hidden>
+          <SheetMusic ref={sheetRef} measures={song.measures} timeSignature={song.time_signature}
+            keySignature={song.key} selectedMeasure={null} onSelectMeasure={() => {}} />
         </div>
       )}
 
-      {confirmDelete && !deleting && (
+      {confirmDelete && (
         <div className="border-t border-rose-500/30 bg-rose-500/10 px-4 py-2.5 flex items-center justify-between">
-          <span className="text-xs text-rose-400">Are you sure? This cannot be undone.</span>
-          <div className="flex gap-2">
-            <button onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-text-secondary">Cancel</button>
-            <button onClick={handleDelete} className="text-xs text-rose-400 font-medium hover:text-rose-300">Delete</button>
-          </div>
+          <span className="text-xs text-rose-400">Delete permanently?</span>
+          <button onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-text-secondary">Cancel</button>
         </div>
       )}
     </div>
@@ -171,49 +139,23 @@ function SongCard({ song, onDelete, onRename }: SongCardProps) {
 }
 
 export default function LibraryPage() {
-  const { user, loading: authLoading } = useAuth();
-  const apiFetch = useApiFetch();
   const router = useRouter();
-  const [keyboardSongs, setKeyboardSongs] = useState<Song[]>([]);
-  const [uploadSongs, setUploadSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [songs, setSongs] = useState<Song[]>([]);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { router.push('/login'); return; }
+  useEffect(() => { setSongs(getSongs()); }, []);
 
-    Promise.all([
-      apiFetch('/api/songs?type=keyboard').then(r => r.json()),
-      apiFetch('/api/songs?type=upload').then(r => r.json()),
-    ]).then(([kbd, up]) => {
-      setKeyboardSongs(kbd.songs ?? []);
-      setUploadSongs(up.songs ?? []);
-      setLoading(false);
-    });
-  }, [user, authLoading, router]);
-
-  async function handleDelete(id: string) {
-    await apiFetch(`/api/songs/${id}`, { method: 'DELETE' });
-    setKeyboardSongs(p => p.filter(s => s.id !== id));
-    setUploadSongs(p => p.filter(s => s.id !== id));
+  function handleDelete(id: string) {
+    deleteSong(id);
+    setSongs(prev => prev.filter(s => s.id !== id));
   }
 
-  async function handleRename(id: string, name: string) {
-    await apiFetch(`/api/songs/${id}`, { method: 'PUT', body: JSON.stringify({ name }) });
-    const update = (songs: Song[]) => songs.map(s => s.id === id ? { ...s, name } : s);
-    setKeyboardSongs(update);
-    setUploadSongs(update);
+  function handleRename(id: string, name: string) {
+    renameSong(id, name);
+    setSongs(prev => prev.map(s => s.id === id ? { ...s, name } : s));
   }
 
-  if (loading) {
-    return (
-      <div className="flex h-48 items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-muted" />
-      </div>
-    );
-  }
-
-  const totalSongs = keyboardSongs.length + uploadSongs.length;
+  const keyboardSongs = songs.filter(s => s.type === 'keyboard');
+  const uploadSongs = songs.filter(s => s.type === 'upload');
 
   return (
     <div className="space-y-10">
@@ -223,7 +165,7 @@ export default function LibraryPage() {
           My Library
         </h1>
         <p className="text-sm text-text-secondary mt-0.5">
-          {totalSongs} song{totalSongs !== 1 ? 's' : ''} saved to your account
+          {songs.length} song{songs.length !== 1 ? 's' : ''} saved on this device
         </p>
       </div>
 
@@ -246,9 +188,7 @@ export default function LibraryPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {keyboardSongs.map(song => (
-              <SongCard key={song.id} song={song} onDelete={handleDelete} onRename={handleRename} />
-            ))}
+            {keyboardSongs.map(s => <SongCard key={s.id} song={s} onDelete={handleDelete} onRename={handleRename} />)}
           </div>
         )}
       </section>
@@ -272,9 +212,7 @@ export default function LibraryPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {uploadSongs.map(song => (
-              <SongCard key={song.id} song={song} onDelete={handleDelete} onRename={handleRename} />
-            ))}
+            {uploadSongs.map(s => <SongCard key={s.id} song={s} onDelete={handleDelete} onRename={handleRename} />)}
           </div>
         )}
       </section>

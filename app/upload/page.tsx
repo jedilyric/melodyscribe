@@ -2,11 +2,8 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useAuth } from '@/context/auth';
-import { useApiFetch } from '@/hooks/useApiFetch';
-import { useRouter } from 'next/navigation';
 import {
-  Upload, FileMusic, Play, Pause, Square, Loader2,
+  Upload, FileMusic, Play, Pause, Loader2,
   Download, Save, ChevronDown, X, AlertCircle, AudioWaveform,
 } from 'lucide-react';
 import SheetMusic, { SheetMusicHandle } from '@/components/SheetMusic';
@@ -14,6 +11,7 @@ import SaveSongDialog from '@/components/SaveSongDialog';
 import { Measure, NoteEvent, KEYS, TIME_SIGNATURES } from '@/types';
 import { midiToVexKey, frequencyToMidi, fillWithRests, transposeMeasures } from '@/lib/noteUtils';
 import { generatePDF } from '@/lib/pdfGenerator';
+import { saveSong } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 const DOWNLOAD_KEYS = ['C', 'G', 'D', 'A', 'E', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
@@ -91,10 +89,6 @@ async function analyzePitch(audioBuffer: AudioBuffer, tempo: number, timeSig: st
 }
 
 export default function UploadPage() {
-  const { user } = useAuth();
-  const apiFetch = useApiFetch();
-  const router = useRouter();
-
   const [key, setKey] = useState('C');
   const [tempo, setTempo] = useState(120);
   const [timeSig, setTimeSig] = useState('4/4');
@@ -113,7 +107,7 @@ export default function UploadPage() {
   const [selectedMeasure, setSelectedMeasure] = useState<number | null>(null);
   const [showSave, setShowSave] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | undefined>(undefined);
   const sheetMusicRef = useRef<SheetMusicHandle>(null);
 
   const onDrop = useCallback((accepted: File[]) => {
@@ -179,13 +173,10 @@ export default function UploadPage() {
     }
   }
 
-  async function handleSave(name: string) {
-    const body = { name, type: 'upload', key, tempo, time_signature: timeSig, measures, lyrics };
-    const url = savedId ? `/api/songs/${savedId}` : '/api/songs';
-    const method = savedId ? 'PUT' : 'POST';
-    const res = await apiFetch(url, { method, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (data.song?.id) setSavedId(data.song.id);
+  function handleSave(name: string) {
+    const saved = saveSong({ id: savedId, name, type: 'upload', key, tempo, time_signature: timeSig, measures, lyrics });
+    setSavedId(saved.id);
+    return Promise.resolve();
   }
 
   async function downloadPdf(targetKey: string) {
@@ -210,7 +201,7 @@ export default function UploadPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {measures.length > 0 && user && (
+          {measures.length > 0 && (
             <button onClick={() => setShowSave(true)}
               className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
               <Save size={14} />
@@ -362,11 +353,7 @@ export default function UploadPage() {
         </>
       )}
 
-      {!user && measures.length > 0 && (
-        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-400 text-center">
-          <button onClick={() => router.push('/login')} className="underline underline-offset-2 hover:text-amber-300">Sign in</button> to save this transcription to your library.
-        </div>
-      )}
+
 
       {showSave && <SaveSongDialog onSave={handleSave} onClose={() => setShowSave(false)} />}
     </div>
