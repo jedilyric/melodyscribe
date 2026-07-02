@@ -6,8 +6,8 @@ export async function getUserFromRequest(req: NextRequest) {
   if (!token) return null;
 
   const sb = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key',
   );
 
   const { data: { user }, error } = await sb.auth.getUser(token);
