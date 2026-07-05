@@ -242,8 +242,8 @@ export default function LibraryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/15">
-              <Library size={18} className="text-sky-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gold-dim border border-gold/25">
+              <Library size={18} className="text-gold" />
             </div>
             My Library
           </h1>

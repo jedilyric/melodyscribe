@@ -28,10 +28,10 @@ export default function InstrumentPicker({ selected, onChange, onClose, onConfir
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-3xl bg-card border border-border rounded-2xl overflow-hidden shadow-2xl shadow-black/60 flex flex-col" style={{ maxHeight: '88vh' }}>
+      <div className="relative w-full max-w-3xl bg-card border border-border rounded-2xl overflow-hidden shadow-2xl shadow-black/20 flex flex-col" style={{ maxHeight: '88vh' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface/80">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/20">
               <Music2 size={18} className="text-accent-light" />
@@ -138,7 +138,7 @@ export default function InstrumentPicker({ selected, onChange, onClose, onConfir
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-surface/60">
+        <div className="border-t border-border px-6 py-4 flex items-center justify-between bg-surface">
           <p className="text-xs text-text-secondary">
             {selected.length === 0
               ? 'Select at least one instrument to transcribe'

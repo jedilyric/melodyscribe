@@ -270,8 +270,8 @@ export default function KeyboardPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/20">
-              <Music size={19} className="text-accent-light" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent shadow-sm">
+              <Music size={19} className="text-white" />
             </div>
             Keyboard Studio
           </h1>
