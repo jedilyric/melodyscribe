@@ -19,6 +19,11 @@ export interface Measure {
   isComplete: boolean;
 }
 
+export interface InstrumentPart {
+  instrumentId: string;
+  measures: Measure[];
+}
+
 export interface Song {
   id?: string;
   user_id?: string;
@@ -29,6 +34,7 @@ export interface Song {
   time_signature: string;
   measures: Measure[];
   lyrics: string;
+  instrumentParts?: InstrumentPart[];
   created_at?: string;
   updated_at?: string;
 }
